@@ -46,6 +46,7 @@ object LinearRoad {
       .print()
     */
 
+    // **ACCIDENT DETECTION**
     val accidentStream: DataStream[Int] = reports.timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
@@ -72,8 +73,23 @@ object LinearRoad {
       }}
 
     })(TypeInformation.of(classOf[Int]))
+    //accidentStream.print()
 
-    accidentStream.print()
+
+    // **SEGMENT STATISTICS**
+    // WARNING: fix, currently gives for this minute, and I want for last minute!
+    // Number of vehicles during minute prior to current minute
+    val numberOfVehicles: DataStream[Int] = reports.timeWindowAll(Time.minutes(1)) // in one minute we can have either 1 or 2 reports from each car
+      .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
+
+        val nov = iterable.groupBy(_(2)).size
+        collector.collect(nov)
+
+    })(TypeInformation.of(classOf[Int]))
+    //numberOfVehicles.print()
+
+    // Average velocity
+    // TODO: LAV
 
     // Execute
     env.execute("Linear Road")
