@@ -28,8 +28,8 @@ object LinearRoad {
     val inputFile = "datafile3hours.dat"
 
     // Get custom data source
-    val dataStream = new CarReportsSource[Array[Int]](inputFile)
-    val reports: DataStream[Array[Int]] = env.addSource(dataStream)(TypeInformation.of(classOf[Array[Int]]))
+    val dataStream = new CarReportsSource[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]](inputFile)
+    val reports = env.addSource(dataStream)(TypeInformation.of(classOf[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]))
 
     // **ACCIDENT DETECTION**
     val accidentStream: DataStream[Int] = accidentDetection(reports)
@@ -38,20 +38,25 @@ object LinearRoad {
     // **SEGMENT STATISTICS**
     // TODO: fix, currently gives for this minute, and I want for last minute!
     // Number of vehicles during minute prior to current minute
-    val nov: DataStream[Int] = numberOfVehicles(reports)
-    //nov.print()
+    val novStream: DataStream[Int] = numberOfVehicles(reports)
+    novStream.print()
 
     // Average velocity
-    val lav: DataStream[(Int, Int, Int, Float)] = latestAverageVelocity(reports)
-    //lav.print()
+    val lavStream: DataStream[(Int, Int, Int, Float)] = latestAverageVelocity(reports)
+    //lavStream.print()
 
     // Execute
     env.execute("Linear Road")
   }
 
-  def accidentDetection(reports: DataStream[Array[Int]]): DataStream[Int] ={
+  // project to get rid of useless fields
+  // input source: change to tuples
+  // key by many fields possible with tuple
+  // grouping to reduce vehicles
 
-    reports.filter(_(0) == 0) // only position reports
+  def accidentDetection(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]): DataStream[Int] ={
+
+    reports.filter(_._1 == 0) // only position reports
       .timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
@@ -60,11 +65,11 @@ object LinearRoad {
       // (vid, position): if a vehicle is stop at least once in the window interval, save the first position where it stopped
       val stoppedPositions = mutable.Map[Int, Int]()
 
-      iterable filter(_(3) == 0) foreach { report => { // keep only the stopped cars (speed == 0)
-      val vid = report(2)
+      iterable filter(_._4 == 0) foreach { report => { // keep only the stopped cars (speed == 0)
+      val vid = report._3
         if (!(stoppedCounts contains vid)){ // first report stopped so put it in stoppedCars and save position
           stoppedCounts(vid) = 1
-          stoppedPositions(vid) = report(8) // position
+          stoppedPositions(vid) = report._9 // position
         }
         else stoppedCounts(vid) += 1
       }}
@@ -81,32 +86,33 @@ object LinearRoad {
 
   }
 
-  def numberOfVehicles(reports: DataStream[Array[Int]]): DataStream[Int] ={
+  def numberOfVehicles(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]): DataStream[Int] ={
 
-    reports.filter(_(0) == 0) // only position reports
+    reports.filter(_._1 == 0) // only position reports
       .timeWindowAll(Time.minutes(1)) // in one minute we can have either 1 or 2 reports from each car
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
-      val nov = iterable.groupBy(_(2)).size // group by VID and count different vehicles
+      val nov = iterable.groupBy(_._3).size // group by VID and count different vehicles
       collector.collect(nov)
 
     })(TypeInformation.of(classOf[Int]))
 
   }
 
-  def latestAverageVelocity(reports: DataStream[Array[Int]]): DataStream[(Int, Int, Int, Float)] ={
+  def latestAverageVelocity(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]): DataStream[(Int, Int, Int, Float)] ={
 
-    reports.filter(_(0) == 0) // only position reports
+    reports.filter(_._1 == 0) // only position reports
+        //.keyBy(0,1,2)
       .timeWindowAll(Time.minutes(5), Time.minutes(1))
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[(Int, Int, Int, Float)]) => {
 
         val velsPerPosition = mutable.Map[(Int, Int, Int), ListBuffer[Float]]()
         // Position := expressway, direction and segment
-        val positions = iterable.groupBy(rep => (rep(4): Int, rep(6): Int, rep(7): Int, rep(2): Int)) // group by expressway, direction and segment
+        val positions = iterable.groupBy(rep => (rep._5: Int, rep._7: Int, rep._8: Int, rep._3: Int)) // group by expressway, direction and segment
         positions.foreach( reportsAtPosition => {
           // for each position calculate avg speed
 
-          val avgVelocityPerCar: Float = reportsAtPosition._2.foldLeft(0)(_ + _(3)) / reportsAtPosition._2.size.toFloat
+          val avgVelocityPerCar: Float = reportsAtPosition._2.foldLeft(0)(_ + _._4) / reportsAtPosition._2.size.toFloat
           val k = (reportsAtPosition._1._1, reportsAtPosition._1._2, reportsAtPosition._1._3)
           if (!(velsPerPosition contains k)){
             velsPerPosition(k) = ListBuffer[Float]()
