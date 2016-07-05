@@ -12,6 +12,7 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by houcros on 07/06/16.
@@ -29,9 +30,10 @@ object LinearRoad {
     // Get custom data source
     val dataStream = new CarReportsSource[Array[Int]](inputFile)
     val reports: DataStream[Array[Int]] = env.addSource(dataStream)(TypeInformation.of(classOf[Array[Int]]))
-    
+
     // **ACCIDENT DETECTION**
-    val accidentStream: DataStream[Int] = reports.timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
+    val accidentStream: DataStream[Int] = reports.filter(_(0) == 0) // only position reports
+      .timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
       // (vid, count): number of stopped reports per car in the window interval
@@ -64,7 +66,8 @@ object LinearRoad {
 
     // WARNING: fix, currently gives for this minute, and I want for last minute!
     // Number of vehicles during minute prior to current minute
-    val numberOfVehicles: DataStream[Int] = reports.timeWindowAll(Time.minutes(1)) // in one minute we can have either 1 or 2 reports from each car
+    val numberOfVehicles: DataStream[Int] = reports.filter(_(0) == 0) // only position reports
+      .timeWindowAll(Time.minutes(1)) // in one minute we can have either 1 or 2 reports from each car
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
       val nov = iterable.groupBy(_(2)).size // group by VID and count different vehicles
@@ -74,28 +77,43 @@ object LinearRoad {
     //numberOfVehicles.print()
 
     // Average velocity
-    // TODO: LAV
-    val latestAverageVelocity: DataStream[(Int, Int, Int, Int)] = reports.timeWindowAll(Time.minutes(5), Time.minutes(1))
-      .apply( (timeWindow: TimeWindow, iterable, collector: Collector[(Int, Int, Int, Int)]) => {
+    val latestAverageVelocity: DataStream[(Int, Int, Int, Float)] = reports.filter(_(0) == 0) // only position reports
+      .timeWindowAll(Time.minutes(5), Time.minutes(1))
+      .apply( (timeWindow: TimeWindow, iterable, collector: Collector[(Int, Int, Int, Float)]) => {
 
+        val velsPerPosition = mutable.Map[(Int, Int, Int), ListBuffer[Float]]()
         // Position := expressway, direction and segment
-        val positions = iterable.groupBy(rep => (rep(4): Int, rep(6): Int, rep(7): Int)) // group by expressway, direction and segment
-        positions.foreach( reportsAtPosition => { // for each position calculate avg speed
+        val positions = iterable.groupBy(rep => (rep(4): Int, rep(6): Int, rep(7): Int, rep(2): Int)) // group by expressway, direction and segment
+        positions.foreach( reportsAtPosition => {
+          // for each position calculate avg speed
 
-          val grouppedReports = reportsAtPosition._2.groupBy(_(2)) // group as there can be more than one report per vehicle at position
-          val count = grouppedReports.size // count number of different vehicles
-          var avgSpeed = 0
-          grouppedReports foreach( gr => { // first calculate avg speed per each vehicle (possibly multiple reports per segment)
-          val avgSpeedPerVehicle = gr._2.aggregate(0)({ (sum, item) => sum + item(3) }, { (p1, p2) => p1 + p2}) / gr._2.size
-            avgSpeed += avgSpeedPerVehicle // acumulate in the global avg speed
-          })
-          avgSpeed /= count // finally divide per number of different vehicles
+          val avgVelocityPerCar: Float = reportsAtPosition._2.foldLeft(0)(_ + _(3)) / reportsAtPosition._2.size.toFloat
+          val k = (reportsAtPosition._1._1, reportsAtPosition._1._2, reportsAtPosition._1._3)
+          if (!(velsPerPosition contains k)){
+            velsPerPosition(k) = ListBuffer[Float]()
+          }
+          velsPerPosition((reportsAtPosition._1._1, reportsAtPosition._1._2, reportsAtPosition._1._3)) += avgVelocityPerCar
 
-          collector.collect(reportsAtPosition._1._1, reportsAtPosition._1._2, reportsAtPosition._1._3, avgSpeed)
-
+          /*
+          println{"reportsAtPosition: " + reportsAtPosition._1.toString()}
+          reportsAtPosition._2 foreach(it => {print("vid: " + it(2) + " - speed: " + it(3) + " | ")})
+          println("avgVelocityPerCar: " + avgVelocityPerCar.toString)
+          println()
+          */
         })
-      })(TypeInformation.of(classOf[(Int, Int, Int, Int)]))
-      latestAverageVelocity.print()
+
+        velsPerPosition.foreach( velsAtPosition => {
+
+          val avgVelocityPerPosition: Float = velsAtPosition._2.sum / velsAtPosition._2.size.toFloat
+          collector.collect(velsAtPosition._1._1, velsAtPosition._1._2, velsAtPosition._1._3, avgVelocityPerPosition)
+/*
+          println{"velsAtPosition: " + velsAtPosition._1.toString()}
+          velsAtPosition._2 foreach(it => {print(it.toString + " | ")})
+          println("\navgVelocityPerPosition: " + avgVelocityPerPosition.toString)
+*/
+        })
+      })(TypeInformation.of(classOf[(Int, Int, Int, Float)]))
+      //latestAverageVelocity.print()
 
     // Execute
     env.execute("Linear Road")
