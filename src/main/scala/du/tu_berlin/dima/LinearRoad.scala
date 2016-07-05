@@ -32,7 +32,26 @@ object LinearRoad {
     val reports: DataStream[Array[Int]] = env.addSource(dataStream)(TypeInformation.of(classOf[Array[Int]]))
 
     // **ACCIDENT DETECTION**
-    val accidentStream: DataStream[Int] = reports.filter(_(0) == 0) // only position reports
+    val accidentStream: DataStream[Int] = accidentDetection(reports)
+    //accidentStream.print()
+
+    // **SEGMENT STATISTICS**
+    // TODO: fix, currently gives for this minute, and I want for last minute!
+    // Number of vehicles during minute prior to current minute
+    val nov: DataStream[Int] = numberOfVehicles(reports)
+    //nov.print()
+
+    // Average velocity
+    val lav: DataStream[(Int, Int, Int, Float)] = latestAverageVelocity(reports)
+    //lav.print()
+
+    // Execute
+    env.execute("Linear Road")
+  }
+
+  def accidentDetection(reports: DataStream[Array[Int]]): DataStream[Int] ={
+
+    reports.filter(_(0) == 0) // only position reports
       .timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
@@ -59,14 +78,12 @@ object LinearRoad {
       }}
 
     })(TypeInformation.of(classOf[Int]))
-    //accidentStream.print()
 
+  }
 
-    // **SEGMENT STATISTICS**
+  def numberOfVehicles(reports: DataStream[Array[Int]]): DataStream[Int] ={
 
-    // WARNING: fix, currently gives for this minute, and I want for last minute!
-    // Number of vehicles during minute prior to current minute
-    val numberOfVehicles: DataStream[Int] = reports.filter(_(0) == 0) // only position reports
+    reports.filter(_(0) == 0) // only position reports
       .timeWindowAll(Time.minutes(1)) // in one minute we can have either 1 or 2 reports from each car
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
@@ -74,10 +91,12 @@ object LinearRoad {
       collector.collect(nov)
 
     })(TypeInformation.of(classOf[Int]))
-    //numberOfVehicles.print()
 
-    // Average velocity
-    val latestAverageVelocity: DataStream[(Int, Int, Int, Float)] = reports.filter(_(0) == 0) // only position reports
+  }
+
+  def latestAverageVelocity(reports: DataStream[Array[Int]]): DataStream[(Int, Int, Int, Float)] ={
+
+    reports.filter(_(0) == 0) // only position reports
       .timeWindowAll(Time.minutes(5), Time.minutes(1))
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[(Int, Int, Int, Float)]) => {
 
@@ -106,16 +125,13 @@ object LinearRoad {
 
           val avgVelocityPerPosition: Float = velsAtPosition._2.sum / velsAtPosition._2.size.toFloat
           collector.collect(velsAtPosition._1._1, velsAtPosition._1._2, velsAtPosition._1._3, avgVelocityPerPosition)
-/*
+          /*
           println{"velsAtPosition: " + velsAtPosition._1.toString()}
           velsAtPosition._2 foreach(it => {print(it.toString + " | ")})
           println("\navgVelocityPerPosition: " + avgVelocityPerPosition.toString)
-*/
+          */
         })
       })(TypeInformation.of(classOf[(Int, Int, Int, Float)]))
-      //latestAverageVelocity.print()
-
-    // Execute
-    env.execute("Linear Road")
   }
+
 }
