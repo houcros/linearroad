@@ -52,6 +52,7 @@ object LinearRoad {
   def accidentDetection(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]): DataStream[Int] ={
 
     reports.filter(_._1 == 0) // only position reports
+      .filter(_._4 == 0) // only stopped cars (speed == 0)
       .timeWindowAll(Time.seconds(4*30), Time.seconds(1*30)) // reports are every 30 seconds
       .apply( (timeWindow: TimeWindow, iterable, collector: Collector[Int]) => {
 
@@ -60,7 +61,7 @@ object LinearRoad {
       // (vid, position): if a vehicle is stop at least once in the window interval, save the first position where it stopped
       val stoppedPositions = mutable.Map[Int, Int]()
 
-      iterable filter(_._4 == 0) foreach { report => { // keep only the stopped cars (speed == 0)
+      iterable foreach { report => {
       val vid = report._3
         if (!(stoppedCounts contains vid)){ // first report stopped so put it in stoppedCars and save position
           stoppedCounts(vid) = 1
