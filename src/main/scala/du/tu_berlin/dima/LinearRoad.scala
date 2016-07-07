@@ -3,15 +3,11 @@ package du.tu_berlin.dima.bdapro.flink.linearroad.houcros
 import es.houcros.linearroad.datasource.CarReportsSource
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
-import org.apache.flink.streaming.api.scala.{AllWindowedStream, StreamExecutionEnvironment, DataStream}
-import org.apache.flink.streaming.api.scala.function.AllWindowFunction
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 import scala.collection.mutable
-//import org.apache.flink.api.scala.createTypeInformation
-import org.apache.flink.streaming.api.scala.createTypeInformation
+import org.apache.flink.streaming.api.scala._
 
 /**
   * Created by houcros on 07/06/16.
