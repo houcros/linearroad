@@ -50,6 +50,7 @@ object LinearRoad {
           collector.collect((1, report._2, currentSecond, accLoc._3))
         })
     // ASK: why wouldn't write with writeAsCsv?
+    // Write to file
     accidentNotifications.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE)
     accidentNotifications.print()
 
@@ -67,15 +68,25 @@ object LinearRoad {
       .join(lavStream) // join on xway, direction and segment
       .where(lf => (lf._1, lf._2, lf._3))
       .equalTo(rg => (rg._1, rg._2, rg._3))
-      .window(TumblingEventTimeWindows.of(Time.seconds(30)))
+      .window(TumblingEventTimeWindows.of(Time.seconds(1*30)))
       .apply((novTuple, lavTuple) => {
-        if (novTuple._4 > 50 && lavTuple._4 < 40)
+        if (novTuple._4 > 50 && lavTuple._4 < 40) // nov > 50 and lav < 40
           (novTuple._1, novTuple._2, novTuple._3, 2 * (novTuple._4 - 50)^2, lavTuple._4) // (x, d, s, toll, lav)
         else
           (novTuple._1, novTuple._2, novTuple._3, 0, lavTuple._4) // (x, d, s, toll, lav)
       })
-      // TODO: still need to join with accidentDetection to implement the formula correctly
-      // if there's no outer join, maybe just save the accident locations on a table and look it up
+      .coGroup(accidentStream) // co-group (to achieve outer join) on xwy, direction and segment
+      .where(lf => (lf._1, lf._2, lf._3))
+      .equalTo(rg => (rg._1, rg._2, rg._3))
+        .window(TumblingEventTimeWindows.of(Time.seconds(1*30)))
+        // the co-group will be 1-1 or 1-0 (for each unique tentative toll, there is 0 or 1 accident there)
+      .apply((tentativeTolls, accidentLocations, collector: Collector[(Int, Int, Int, Int, Float)]) => {
+        // First element of tentativeTolls (tentativeTolls.toList.head) should always exist! (cause it's a super set of accidentLocations)
+        val tentativeToll = tentativeTolls.toList.head
+        if (accidentLocations.isEmpty) collector.collect(tentativeToll) // no accident at this location, so tentative is definitive
+        // Else, accident at this location, so toll should be 0
+        collector.collect(tentativeToll.copy(_4 = 0))
+      })
 
 
     // **TOLLS**
@@ -102,6 +113,7 @@ object LinearRoad {
           // REVIEW: maybe can compact the if's (but less legible...)
           if (!(carCurrentState contains vid)) {
             carCurrentState(vid) = (tollCalc._3, tollCalc._4) // (newSegment, newToll)
+            if(!(tolls contains vid)) tolls(vid) = 0 // if it's the first time we see this car, we create an entry in the toll history
             // Emit toll notification
             collector.collect(ret) // (type, vid, receive time, emit time, lav, toll)
           }
@@ -117,6 +129,7 @@ object LinearRoad {
             }
           }
         })
+    // Write to file
     tollNotificationsAndAssessments.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE)
     tollNotificationsAndAssessments.print()
 
@@ -213,7 +226,7 @@ object LinearRoad {
     reports.filter(_._1 == 0) // only position reports
       // REVIEW: is there a project method?
       .map( x => (x._3, x._4, x._5, x._7, x._8)) // project to vid, speed, xway, direction and segment
-      .keyBy(2,3,4) // fields of location (xway, direction, segment) after mapping
+      .keyBy(2,3,4) // key by xway, direction, segment
       .timeWindow(Time.minutes(5), Time.minutes(1))
       .apply( (tup, timeWindow, iterable, collector: Collector[(Int, Int, Int, Float)]) => {
 
@@ -232,7 +245,7 @@ object LinearRoad {
             val carReportsCount = aux._2 + 1
             partialAvgs(k) = (carAvg, carReportsCount)
             // add newly calculated avg speed corresponding to this car
-            grandAvg -= carAvg
+            grandAvg += carAvg
           }
           else{
             counter += 1 // for the grand average we count every car just once (on first report)
