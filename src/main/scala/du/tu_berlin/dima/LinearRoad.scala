@@ -82,10 +82,13 @@ object LinearRoad {
         // the co-group will be 1-1 or 1-0 (for each unique tentative toll, there is 0 or 1 accident there)
       .apply((tentativeTolls, accidentLocations, collector: Collector[(Int, Int, Int, Int, Float)]) => {
         // First element of tentativeTolls (tentativeTolls.toList.head) should always exist! (cause it's a super set of accidentLocations)
-        val tentativeToll = tentativeTolls.toList.head
-        if (accidentLocations.isEmpty) collector.collect(tentativeToll) // no accident at this location, so tentative is definitive
-        // Else, accident at this location, so toll should be 0
-        collector.collect(tentativeToll.copy(_4 = 0))
+        // FIXME: for some reason tentativeTolls is empty! It shouldn't: we should be calculating tolls for all locations where there are cars, and if there is an accident in a location then there are cars there!
+        if (tentativeTolls.nonEmpty) {
+          val tentativeToll = tentativeTolls.toList.head
+          if (accidentLocations.isEmpty) collector.collect(tentativeToll) // no accident at this location, so tentative is definitive
+          // Else, accident at this location, so toll should be 0
+          collector.collect(tentativeToll.copy(_4 = 0))
+        }
       })
 
 
