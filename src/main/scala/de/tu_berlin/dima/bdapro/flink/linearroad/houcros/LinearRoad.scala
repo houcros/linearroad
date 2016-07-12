@@ -1,4 +1,4 @@
-package du.tu_berlin.dima.bdapro.flink.linearroad.houcros
+package de.tu_berlin.dima.bdapro.flink.linearroad.houcros
 
 import java.util.Calendar
 
