@@ -24,7 +24,7 @@ object LinearRoad {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     //val inputFile = "datafile20seconds.dat"
-    val inputFile = "datafile3hours.dat"
+    val inputFile = "datasets/datafile3hours.dat"
     val outputFile = "src/main/resources/output3hours.dat"
 
     // Get custom data source
