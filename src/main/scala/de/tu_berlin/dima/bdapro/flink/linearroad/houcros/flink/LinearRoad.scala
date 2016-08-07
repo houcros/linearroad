@@ -1,4 +1,4 @@
-package de.tu_berlin.dima.bdapro.flink.linearroad.houcros
+package de.tu_berlin.dima.bdapro.flink.linearroad.houcros.flink
 
 import java.util.Calendar
 
@@ -23,7 +23,8 @@ object LinearRoad {
     // Set-up
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-    //val inputFile = "datafile20seconds.dat"
+    //val inputFile = "datasets/datafile20seconds.dat"
+    //val outputFile = "src/main/resources/output20seconds.dat"
     val inputFile = "datasets/datafile3hours.dat"
     val outputFile = "src/main/resources/output3hours.dat"
 

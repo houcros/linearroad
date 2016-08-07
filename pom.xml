@@ -49,7 +49,11 @@ under the License.
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<flink.version>1.0.1</flink.version>
+        <!-- Scala -->
+        <scala.version>2.10.5</scala.version>
+        <scala.tools.version>2.10</scala.tools.version>
+        <!-- Flink -->
+		<flink.version>1.0.3</flink.version>
 	</properties>
 
 	<!-- 
@@ -79,37 +83,25 @@ under the License.
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-scala_2.10</artifactId>
+			<artifactId>flink-scala_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-scala_2.10</artifactId>
+			<artifactId>flink-streaming-scala_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-clients_2.10</artifactId>
+			<artifactId>flink-clients_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
+        <!-- Custom DataSource -->
         <dependency>
             <groupId>com.github.houcros</groupId>
             <artifactId>linearroad-datasource</artifactId>
-            <version>2.1</version>
+            <version>3.0.10</version>
         </dependency>
-
-<!-- http://mvnrepository.com/artifact/org.apache.kafka/kafka_2.10 -->
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka_2.10</artifactId>
-			<version>0.8.2.1</version>
-		</dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-kafka-0.8_2.10</artifactId>
-            <version>1.1-SNAPSHOT</version>
-        </dependency>
-
 	</dependencies>
 
 	<profiles>
