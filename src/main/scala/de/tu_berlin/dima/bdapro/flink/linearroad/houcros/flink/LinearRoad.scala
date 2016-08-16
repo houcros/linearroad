@@ -3,9 +3,9 @@ package de.tu_berlin.dima.bdapro.flink.linearroad.houcros.flink
 import es.houcros.linearroad.datasource.CarReportsSource
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
-import scala.collection.mutable
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.core.fs.FileSystem
+import scala.collection.mutable
 
 /**
   * Created by houcros on 07/06/16.
@@ -41,11 +41,11 @@ object LinearRoad {
     // **SEGMENT STATISTICS**
     // FIXME: currently gives for this minute, and I want for last minute!
     // Number of vehicles during minute prior to current minute
-    val novStream = Utils.numberOfVehicles(reports) // (x, d, s, nov)
+    val novStream = SegmentStatistics.numberOfVehicles(reports) // (x, d, s, nov)
     //novStream.print()
     // Average velocity
     // FIXME: I think same problem as above: need to get from previous 5 min, but I'm getting from this min and 4 before
-    val lavStream = Utils.latestAverageVelocity(reports) // (x, d, s, lav)
+    val lavStream = SegmentStatistics.latestAverageVelocity(reports) // (x, d, s, lav)
     //lavStream.print()
     // toll calculation per xway, direction and segment, and lav: (x, d, s, toll, lav)
     val tollCalculation = TollManager.tollCalculation(novStream, lavStream, accidentStream)

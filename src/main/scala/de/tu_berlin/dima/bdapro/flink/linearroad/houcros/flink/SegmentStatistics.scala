@@ -11,10 +11,10 @@ import scala.collection.mutable
 /**
   * Created by ilucero on 8/15/16.
   */
-object Utils {
+object SegmentStatistics {
 
   /**
-    * Calculates the number of vehicles per minute in an expressway, direction and segment.
+    * Calculates the number of vehicles during the prior minute in an expressway, direction and segment.
     * @param reports The stream of reports and queries emitted by the vehicles.
     * @return A new stream with expressway, direction, segment and number of vehicles (in that order). Will emit every minute.
     */
