@@ -15,9 +15,11 @@ import scala.reflect.io.File
 class NumberOfVehiclesSpec extends FlatSpec with BeforeAndAfterAll {
 
   var result: Array[String] = _
+  val inputFile = "testNov1.dat"
+  val outputFile = "src/test/resources/outputTest1"
 
   /**
-    * Common previous flow for all the tests to come
+    * Common previous set up for all the tests to come
     */
   override protected def beforeAll(): Unit = {
 
@@ -26,8 +28,6 @@ class NumberOfVehiclesSpec extends FlatSpec with BeforeAndAfterAll {
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
     // Generate reports stream from file
-    val inputFile = "testNov1.dat"
-    val outputFile = "src/test/resources/outputTest1"
     val dataStream = new CarReportsSource[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]](inputFile)
     val reports = env.addSource(dataStream)(TypeInformation.of(classOf[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]))
 
