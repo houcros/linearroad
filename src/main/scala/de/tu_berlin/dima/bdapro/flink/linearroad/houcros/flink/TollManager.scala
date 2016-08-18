@@ -63,15 +63,15 @@ object TollManager {
       .apply( (tollNot, tollCalc, collector: Collector[(Int, Int, Int, Int, Float, Int)]) => { // the join will be 1 to 1, as there is one (or none) report per car in 30 sec, and one toll calculation per location
       // TODO: also send toll notification! (write)
       // FIXME: this is not the right second (should be event time)
-      val currentSecond = Calendar.getInstance().get(Calendar.SECOND)
-        val ret = (0, tollNot._1, tollNot._6, currentSecond, tollCalc._5, tollCalc._4)
+        val retProv = (0, tollNot._1, tollNot._6, -1, tollCalc._5, tollCalc._4) // provisional return tuple, to be updated with emit time
         val vid = tollNot._1
         // If not in carCurrentState, save segment and segment charge for this car
-        // REVIEW: maybe can compact the if's (but less legible...)
         if (!(carCurrentState contains vid)) {
           carCurrentState(vid) = (tollCalc._3, tollCalc._4) // (newSegment, newToll)
           if(!(tolls contains vid)) tolls(vid) = 0 // if it's the first time we see this car, we create an entry in the toll history
           // Emit toll notification
+          val ret = (retProv._1, retProv._2, retProv._3,
+              ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, retProv._5, retProv._6)
           collector.collect(ret) // (type, vid, receive time, emit time, lav, toll)
         }
         else{
@@ -82,6 +82,8 @@ object TollManager {
             if (tollNot._3 != 4) tolls(vid) += oldCharge
             // FIXME: then don't need tollAssessment!!!
             // Emit toll notification
+            val ret = (retProv._1, retProv._2, retProv._3,
+              ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, retProv._5, retProv._6)
             collector.collect(ret) // (type, vid, receive time, emit time, lav, toll)
           }
         }

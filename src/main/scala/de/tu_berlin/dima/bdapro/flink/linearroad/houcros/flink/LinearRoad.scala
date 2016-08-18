@@ -1,5 +1,7 @@
 package de.tu_berlin.dima.bdapro.flink.linearroad.houcros.flink
 
+import java.util.Calendar
+
 import es.houcros.linearroad.datasource.CarReportsSource
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
@@ -12,19 +14,22 @@ import scala.collection.mutable
   */
 object LinearRoad {
 
+  var startTime: Long = _
+
   def main(args: Array[String]): Unit = {
 
     // Set-up
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-    val inputFile = "datasets/datafile20seconds.dat"
-    val outputFile = "src/main/resources/output20seconds.dat"
-    //val inputFile = "datasets/datafile3hours.dat"
-    //val outputFile = "src/main/resources/output3hours.dat"
+    //val inputFile = "datasets/datafile20seconds.dat"
+    //val outputFile = "src/main/resources/output20seconds.dat"
+    val inputFile = "datasets/datafile3hours.dat"
+    val outputFile = "src/main/resources/output3hours.dat"
 
     // Get custom data source
     val dataStream = new CarReportsSource[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]](inputFile)
     val reports = env.addSource(dataStream)(TypeInformation.of(classOf[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]))
+    startTime = Calendar.getInstance.getTimeInMillis
 
     // ** ACCIDENT DETECTION **
     val accidentStream: DataStream[(Int, Int, Int)] = AccidentManager.accidentDetection(reports)
