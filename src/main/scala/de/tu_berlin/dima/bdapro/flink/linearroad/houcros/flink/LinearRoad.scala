@@ -40,7 +40,7 @@ object LinearRoad {
     val accidentNotifications: DataStream[(Int, Int, Int, Int)] = AccidentManager.accidentNotifications(reports, accidentStream)
     // ASK: why wouldn't write with writeAsCsv?
     // Write to file
-    accidentNotifications.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE)
+    accidentNotifications.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1)
     accidentNotifications.print()
 
     // **SEGMENT STATISTICS**
@@ -65,9 +65,12 @@ object LinearRoad {
     // REVIEW: do i need the lane at all?
     val tollNotificationsAndAssessments = TollManager.tollNotificationsAndAssessments(reports, tollCalculation, carCurrentState, tolls)
     // Write to file
-    tollNotificationsAndAssessments.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE)
+    tollNotificationsAndAssessments.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1)
     tollNotificationsAndAssessments.print()
 
+    // **ACCOUNT BALANCE**
+    val accountBalanceStream = HistoricalQueries.accountBalance(reports, tolls)
+    accountBalanceStream.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1)
     // Execute
     env.execute("Linear Road")
   }
