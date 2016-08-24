@@ -68,9 +68,13 @@ object LinearRoad {
     tollNotificationsAndAssessments.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1)
     tollNotificationsAndAssessments.print()
 
-    // **ACCOUNT BALANCE**
+    // **HQ1: ACCOUNT BALANCE**
     val accountBalanceStream = HistoricalQueries.accountBalance(reports, tolls)
     accountBalanceStream.writeAsText(outputFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1)
+
+    // **HQ2: DAILY EXPENDITURE**
+    val dailyExpenditureStream = HistoricalQueries.dailyExpenditure(reports)
+
     // Execute
     env.execute("Linear Road")
   }
