@@ -46,8 +46,10 @@ object HistoricalQueries {
     reports
       .filter(_._1 == 2) // only account balance queries
       .map(query => {
+      // FIXME: this check shouldn't be needed, should it? I was assuming that only reporting cars can ask for their balance
+      val balance = if (tolls contains query._3) tolls(query._3) else 0
       // responseType, receive time, emit time, result time, query id, balance
-      (2, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, -1, query._10, tolls(query._3))
+      (2, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, -1, query._10, balance)
     })
   }
 
@@ -56,9 +58,10 @@ object HistoricalQueries {
     reports
       .filter(_._1 == 3) // only daily expenditure queries
       .map(query => {
-      // responseType, receive time, emit time, result time, query id, balance
-      (3, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt,
-        query._10, tollHistory((query._3, query._15, query._5)).sum) // last item is the list at key: (vid, day, xway)
+      // sum of the list at key: (vid, day, xway), or 0 in no such key
+      val expenditure = if (tollHistory contains (query._3, query._15, query._5)) tollHistory((query._3, query._15, query._5)).sum else 0
+      // responseType, receive time, emit time, result time, query id, expenditure
+      (3, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, query._10, expenditure)
     })
   }
 }
