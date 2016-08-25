@@ -17,8 +17,8 @@ specific language governing permissions and limitations
 under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>du.tu_berlin.dima</groupId>
@@ -41,18 +41,18 @@ under the License.
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
 	</repositories>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Scala -->
-        <scala.version>2.10.5</scala.version>
-        <scala.tools.version>2.10</scala.tools.version>
-        <!-- Flink -->
+		<!-- Scala -->
+		<scala.version>2.10.5</scala.version>
+		<scala.tools.version>2.10</scala.tools.version>
+		<!-- Flink -->
 		<flink.version>1.0.3</flink.version>
 	</properties>
 
@@ -85,28 +85,65 @@ under the License.
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-scala_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-streaming-scala_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-clients_${scala.tools.version}</artifactId>
 			<version>${flink.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-        <!-- Custom DataSource -->
-        <dependency>
-            <groupId>com.github.houcros</groupId>
-            <artifactId>linearroad-datasource</artifactId>
-            <version>3.0.10</version>
-        </dependency>
+		<!-- Custom DataSource -->
+		<dependency>
+			<groupId>com.github.houcros</groupId>
+			<artifactId>linearroad-datasource</artifactId>
+			<version>3.0.10</version>
+		</dependency>
+		<!--Testing-->
 		<dependency>
 			<groupId>org.scalatest</groupId>
 			<artifactId>scalatest_2.10</artifactId>
 			<version>3.0.0</version>
 			<scope>test</scope>
+		</dependency>
+		<!--Logging-->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.1.7</version>
 		</dependency>
 	</dependencies>
 
