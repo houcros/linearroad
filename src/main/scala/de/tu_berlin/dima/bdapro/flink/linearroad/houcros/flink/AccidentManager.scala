@@ -74,7 +74,7 @@ object AccidentManager {
         // ASK: how to get the current event minute, instead of the processor minute?
         val currentSecond = Calendar.getInstance().get(Calendar.SECOND)
         // type, receive time, emit time, segment [, car]
-        collector.collect((1, report._2, currentSecond, accLoc._3))
+        collector.collect((Utils.TYPE_ACCIDENT_NOTIFICATION, report._2, currentSecond, accLoc._3))
       })
   }
 

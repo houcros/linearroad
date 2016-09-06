@@ -2,6 +2,7 @@ package de.tu_berlin.dima.bdapro.flink.linearroad.houcros.flink
 
 import java.util.Calendar
 
+import org.apache.flink.api.common.state.ValueState
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
@@ -14,6 +15,13 @@ import scala.collection.mutable
   * Created by ilucero on 8/15/16.
   */
 object TollManager {
+
+  // TODO: how to save this to disk?
+  /* Save the sum of all the tolls assessed to every car: map of k: vid, v: amount */
+  val tolls = mutable.Map[Int, Float]()
+
+  // WARNING: might need more granularity for historical queries, not aggregated
+  private val carCurrentState = mutable.Map[Int, (Int, Float)]() // vid, (segment, segmCharge)
 
   def tollCalculation(novStream: DataStream[(Int, Int, Int, Int)],
                       lavStream: DataStream[(Int, Int, Int, Float)],
@@ -49,9 +57,7 @@ object TollManager {
   }
 
   def tollNotificationsAndAssessments(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]],
-                                      tollCalculation: DataStream[(Int, Int, Int, Int, Float)],
-                                      carCurrentState: mutable.Map[Int, (Int, Float)],
-                                      tolls: mutable.Map[Int, Float]): DataStream[(Int, Int, Int, Int, Float, Int)] ={
+                                      tollCalculation: DataStream[(Int, Int, Int, Int, Float)]): DataStream[(Int, Int, Int, Int, Float, Int)] ={
 
     reports
       .map(rep => (rep._3, rep._5, rep._6, rep._7, rep._8, rep._2)) // project on vid, xway, lane, direction, segment, timestamp
@@ -63,7 +69,7 @@ object TollManager {
       .apply( (tollNot, tollCalc, collector: Collector[(Int, Int, Int, Int, Float, Int)]) => { // the join will be 1 to 1, as there is one (or none) report per car in 30 sec, and one toll calculation per location
       // TODO: also send toll notification! (write)
       // FIXME: this is not the right second (should be event time)
-        val retProv = (0, tollNot._1, tollNot._6, -1, tollCalc._5, tollCalc._4) // provisional return tuple, to be updated with emit time
+        val retProv = (Utils.TYPE_TOLL_NOTIFICATION, tollNot._1, tollNot._6, -1, tollCalc._5, tollCalc._4) // provisional return tuple, to be updated with emit time
         val vid = tollNot._1
         // If not in carCurrentState, save segment and segment charge for this car
         if (!(carCurrentState contains vid)) {
@@ -71,7 +77,7 @@ object TollManager {
           if(!(tolls contains vid)) tolls(vid) = 0 // if it's the first time we see this car, we create an entry in the toll history
           // Emit toll notification
           val ret = (retProv._1, retProv._2, retProv._3,
-              ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, retProv._5, retProv._6)
+              Utils.getCurrentRelativeTime(Calendar.getInstance.getTimeInMillis), retProv._5, retProv._6)
           collector.collect(ret) // (type, vid, receive time, emit time, lav, toll)
         }
         else{
@@ -83,7 +89,7 @@ object TollManager {
             // FIXME: then don't need tollAssessment!!!
             // Emit toll notification
             val ret = (retProv._1, retProv._2, retProv._3,
-              ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, retProv._5, retProv._6)
+              Utils.getCurrentRelativeTime(Calendar.getInstance.getTimeInMillis), retProv._5, retProv._6)
             collector.collect(ret) // (type, vid, receive time, emit time, lav, toll)
           }
         }

@@ -41,15 +41,14 @@ object HistoricalQueries {
     tollHistory
   }
 
-  def accountBalance(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]],
-                     tolls: mutable.Map[Int, Float]): DataStream[(Int,Int,Int,Int,Int,Float)] = {
+  def accountBalance(reports: DataStream[Tuple15[Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int,Int]]): DataStream[(Int,Int,Int,Int,Int,Float)] = {
+    val tolls = TollManager.tolls
     reports
       .filter(_._1 == 2) // only account balance queries
       .map(query => {
-      // FIXME: this check shouldn't be needed, should it? I was assuming that only reporting cars can ask for their balance
       val balance = if (tolls contains query._3) tolls(query._3) else 0
       // responseType, receive time, emit time, result time, query id, balance
-      (2, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, -1, query._10, balance)
+      (Utils.TYPE_HQ1, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, -1, query._10, balance)
     })
   }
 
@@ -60,8 +59,8 @@ object HistoricalQueries {
       .map(query => {
       // sum of the list at key: (vid, day, xway), or 0 in no such key
       val expenditure = if (tollHistory contains (query._3, query._15, query._5)) tollHistory((query._3, query._15, query._5)).sum else 0
-      // responseType, receive time, emit time, result time, query id, expenditure
-      (3, query._1, ((Calendar.getInstance.getTimeInMillis - LinearRoad.startTime)/1000).toInt, query._10, expenditure)
+      // responseType, receive time, emit time, query id, expenditure
+      (Utils.TYPE_HQ2, query._1, Utils.getCurrentRelativeTime(Calendar.getInstance.getTimeInMillis), query._10, expenditure)
     })
   }
 }
