@@ -19,6 +19,7 @@
 	</appender>
 	
 	<logger name="de.tu_berlin.dima.bdapro.flink.linearroad.houcros.flink" level="info" additivity="false">
+		<appender-ref ref="STDOUT" />
 		<appender-ref ref="FILE" />
 	</logger>
 
