@@ -86,7 +86,6 @@ object TollManager {
             carCurrentState(vid) = (tollCalc._3, tollCalc._4) // (newSegment, newToll)
             // Also, charge toll for the segment that just left, as it changed (if not in exit lane!)
             if (tollNot._3 != 4) tolls(vid) += oldCharge
-            // FIXME: then don't need tollAssessment!!!
             // Emit toll notification
             val ret = (retProv._1, retProv._2, retProv._3,
               Utils.getCurrentRelativeTime(Calendar.getInstance.getTimeInMillis), retProv._5, retProv._6)
