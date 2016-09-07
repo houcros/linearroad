@@ -6,6 +6,7 @@ import java.util.Calendar
 import es.houcros.linearroad.datasource.CarReportsSource
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.streaming.api.scala._
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -16,11 +17,14 @@ import scala.io.Source
   */
 object HistoricalQueries {
 
+  private final val LOG = LoggerFactory.getLogger(HistoricalQueries.getClass.getSimpleName)
+
   val tollHistoryFile = "datasets/tollHistory1Xway.dat"
   val tollHistory = loadTollHistory(tollHistoryFile) // key: (VID, Day, XWay), value: List[Tolls]
 
   private def loadTollHistory(tollHistoryFile: String): mutable.HashMap[(Int,Int,Int),ListBuffer[Int]] = {
 
+    LOG.info("Loading toll history")
     val tollHistory = mutable.HashMap[(Int,Int,Int),ListBuffer[Int]]()
 
     // Build toll history file resource path
@@ -38,6 +42,7 @@ object HistoricalQueries {
       tollHistory(key) += splitLine(3)
     }
 
+    LOG.info("Toll history loaded")
     tollHistory
   }
 
