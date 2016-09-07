@@ -71,10 +71,9 @@ object AccidentManager {
       .equalTo(acc => (acc._1, acc._2, acc._3)) // REVIEW: WTH do I need to do this hack? Why it doesn't just work with (_)
       .window(TumblingEventTimeWindows.of(Time.seconds(30)))
       .apply( (report, accLoc, collector: Collector[(Int, Int, Int, Int)]) => {
-        // ASK: how to get the current event minute, instead of the processor minute?
-        val currentSecond = Calendar.getInstance().get(Calendar.SECOND)
-        // type, receive time, emit time, segment [, car]
-        collector.collect((Utils.TYPE_ACCIDENT_NOTIFICATION, report._2, currentSecond, accLoc._3))
+        // type, receive time, emit time, segment
+        collector.collect((Utils.TYPE_ACCIDENT_NOTIFICATION, report._2,
+          Utils.getCurrentRelativeTime(Calendar.getInstance.getTimeInMillis), accLoc._3))
       })
   }
 
